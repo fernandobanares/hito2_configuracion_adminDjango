@@ -32,6 +32,18 @@ class Arrendatario(Persona):
     def __str__(self):
         return f"Arrendatario: {self.nombres} {self.apellidos}"
 
+class Region(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+
+    def __str__(self):
+        return self.nombre
+    
+class Comuna(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)
+    region = models.ForeignKey(Region, on_delete=models.CASCADE, related_name='comunas')
+
+    def __str__(self):
+        return self.nombre
 
 class Inmueble(models.Model):
     TIPO_INMUEBLE_CHOICES = [
@@ -49,7 +61,7 @@ class Inmueble(models.Model):
     habitaciones = models.IntegerField(default=1)
     banos = models.IntegerField(default=1)
     direccion = models.CharField(max_length=200)
-    comuna = models.CharField(max_length=100)
+    comuna = models.ForeignKey(Comuna, on_delete=models.CASCADE, related_name='inmuebles')
     tipo_inmueble = models.CharField(max_length=50, choices=TIPO_INMUEBLE_CHOICES, default='casa')
     precio_mensual = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     arrendador = models.ForeignKey(Arrendador, on_delete=models.CASCADE, null=True, blank=True, related_name='inmuebles')
