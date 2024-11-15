@@ -1,6 +1,38 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+class Persona(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    nombres = models.CharField(max_length=100)
+    apellidos = models.CharField(max_length=100)
+    rut = models.CharField(max_length=12, unique=True)
+    direccion = models.CharField(max_length=200)
+    telefono = models.CharField(max_length=15)
+
+    class Meta:
+        abstract = True
+
+    def __str__(self):
+        return f"{self.nombres} {self.apellidos}"
+
+
+class Arrendador(Persona):
+    empresa = models.CharField(max_length=100, blank=True, null=True)
+    experiencia = models.IntegerField(default=0, help_text="Años de experiencia como Arrendador.")
+
+    def __str__(self):
+        return f"Arrendador: {self.nombres} {self.apellidos}"
+
+
+class Arrendatario(Persona):
+    ingresos_mensuales = models.DecimalField(max_digits=10, decimal_places=2, help_text="Ingresos mensuales del Arrendatario")
+    ocupacion = models.CharField(max_length=100, help_text="Ocupación del arrendatario")
+    referencias = models.TextField(blank=True, null=True, help_text="Referencias anteriores")
+
+    def __str__(self):
+        return f"Arrendatario: {self.nombres} {self.apellidos}"
+
+
 class Inmueble(models.Model):
     TIPO_INMUEBLE_CHOICES = [
         ('casa', 'Casa'),
@@ -20,26 +52,11 @@ class Inmueble(models.Model):
     comuna = models.CharField(max_length=100)
     tipo_inmueble = models.CharField(max_length=50, choices=TIPO_INMUEBLE_CHOICES, default='casa')
     precio_mensual = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    arrendador = models.ForeignKey('Profile', on_delete=models.CASCADE, null=True, blank=True, limit_choices_to={'tipo_usuario': 'arrendador'})
+    arrendador = models.ForeignKey(Arrendador, on_delete=models.CASCADE, null=True, blank=True, related_name='inmuebles')
 
     def __str__(self):
         return self.nombre
 
-class Profile(models.Model):
-    TIPO_USUARIO_CHOICES = [
-        ('arrendatario', 'Arrendatario'),
-        ('arrendador', 'Arrendador'),
-    ]
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    nombres = models.CharField(max_length=100)
-    apellidos = models.CharField(max_length=100)
-    rut = models.CharField(max_length=12, unique=True)
-    direccion = models.CharField(max_length=200)
-    telefono = models.CharField(max_length=15)
-    tipo_usuario = models.CharField(max_length=20, choices=TIPO_USUARIO_CHOICES, default='arrendatario')
-
-    def __str__(self):
-        return f"{self.nombres} {self.apellidos} - {self.tipo_usuario}"
 
 class SolicitudArriendo(models.Model):
     ESTADO_SOLICITUD_CHOICES = [
@@ -47,11 +64,11 @@ class SolicitudArriendo(models.Model):
         ('aceptada', 'Aceptada'),
         ('rechazada', 'Rechazada'),
     ]
-    inmueble = models.ForeignKey('Inmueble', on_delete=models.CASCADE, related_name='solicitudes')
-    arrendatario = models.ForeignKey(Profile, on_delete=models.CASCADE, limit_choices_to={'tipo_usuario': 'arrendatario'})
+    inmueble = models.ForeignKey(Inmueble, on_delete=models.CASCADE, related_name='solicitudes')
+    arrendatario = models.ForeignKey(Arrendatario, on_delete=models.CASCADE, related_name='solicitudes')
     fecha_solicitud = models.DateTimeField(auto_now_add=True)
     estado = models.CharField(max_length=10, choices=ESTADO_SOLICITUD_CHOICES, default='pendiente')
+    comentario = models.TextField(blank=True, null=True, help_text="Comentarios adicionales")
 
     def __str__(self):
         return f"Solicitud de {self.arrendatario} para {self.inmueble} - {self.estado}"
-
